@@ -33,6 +33,16 @@
               manifest.json background.js api
           '';
 
+          # `nix flake check` runs biome over the sources. biome needs no git,
+          # so it just runs against the source copy directly.
+          checks.biome = pkgs.runCommand "biome-check" {
+            nativeBuildInputs = [ pkgs.biome ];
+          } ''
+            cd ${./.}
+            biome check .
+            touch $out
+          '';
+
           devShells.default = pkgs.mkShell {
             # biome: formats + lints the JS/JSON.
             # prek: runs the biome check as a git hook (see prek.toml).
