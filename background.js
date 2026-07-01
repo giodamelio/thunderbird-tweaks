@@ -1,0 +1,1 @@
+browser.accountStripe.init();

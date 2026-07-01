@@ -1,0 +1,23 @@
+{
+  "manifest_version": 2,
+  "name": "Account Color Stripe",
+  "version": "1.0",
+  "description": "Draws a per-account color stripe on each message-list row, using the native account color.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "account-stripe@gio",
+      "strict_min_version": "128.0"
+    }
+  },
+  "background": { "scripts": ["background.js"] },
+  "experiment_apis": {
+    "accountStripe": {
+      "schema": "api/accountStripe/schema.json",
+      "parent": {
+        "scopes": ["addon_parent"],
+        "paths": [["accountStripe"]],
+        "script": "api/accountStripe/implementation.js"
+      }
+    }
+  }
+}

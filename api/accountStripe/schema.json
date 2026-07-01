@@ -1,0 +1,8 @@
+[
+  {
+    "namespace": "accountStripe",
+    "functions": [
+      { "name": "init", "type": "function", "async": true, "parameters": [] }
+    ]
+  }
+]
