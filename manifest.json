@@ -1,12 +1,13 @@
 {
   "manifest_version": 2,
   "name": "Account Color Stripe",
-  "version": "1.0",
+  "version": "0.1.0",
   "description": "Draws a per-account color stripe on each message-list row, using the native account color.",
   "browser_specific_settings": {
     "gecko": {
       "id": "account-stripe@gio",
-      "strict_min_version": "128.0"
+      "strict_min_version": "128.0",
+      "update_url": "https://giodamelio.github.io/thunderbird-tweaks/updates.json"
     }
   },
   "background": { "scripts": ["background.js"] },

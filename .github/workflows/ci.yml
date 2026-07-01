@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    name: Flake checks
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # FlakeHub Cache auth (OIDC)
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 #v4.3.1
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@92148bb48b9a0c5458c53dd0b368fbfbfbaa3210 #main
+
+      - name: Setup FlakeHub Cache
+        uses: DeterminateSystems/flakehub-cache-action@9926dde74484ccb2224835b80531de64ed4336ef #main
+
+      - name: Run flake checks
+        run: nix flake check -L
+
+  release:
+    name: Build and release XPI
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write # FlakeHub Cache auth (OIDC)
+    env:
+      # Monotonic add-on version (must climb for auto-update to fire). The commit
+      # short hash goes in the release notes for traceability, not the version.
+      VERSION: 0.1.${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 #v4.3.1
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@92148bb48b9a0c5458c53dd0b368fbfbfbaa3210 #main
+
+      - name: Setup FlakeHub Cache
+        uses: DeterminateSystems/flakehub-cache-action@9926dde74484ccb2224835b80531de64ed4336ef #main
+
+      - name: Inject version into manifest
+        run: |
+          jq --arg v "$VERSION" '.version = $v' manifest.json > manifest.tmp
+          mv manifest.tmp manifest.json
+
+      - name: Build XPI
+        run: nix build -L
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          short="${GITHUB_SHA::7}"
+          tag="v$VERSION"
+          asset="account-stripe-$VERSION.xpi"
+          cp "$(readlink -f result/*.xpi)" "$asset"
+          # VERSION is unique per run, so the tag is fresh; the clobber fallback
+          # only matters when a workflow run is manually re-run.
+          if ! gh release create "$tag" "$asset" \
+              --target "$GITHUB_SHA" \
+              --title "$tag" \
+              --notes "Automated build of $short"; then
+            gh release upload "$tag" "$asset" --clobber
+          fi
+
+  pages:
+    name: Publish update manifest
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      VERSION: 0.1.${{ github.run_number }}
+    steps:
+      - name: Generate updates.json
+        run: |
+          mkdir -p site
+          repo="${{ github.repository }}"
+          cat > site/updates.json <<EOF
+          {
+            "addons": {
+              "account-stripe@gio": {
+                "updates": [
+                  {
+                    "version": "$VERSION",
+                    "update_link": "https://github.com/$repo/releases/download/v$VERSION/account-stripe-$VERSION.xpi",
+                    "applications": { "gecko": { "strict_min_version": "128.0" } }
+                  }
+                ]
+              }
+            }
+          }
+          EOF
+          cat site/updates.json
+
+      - name: Configure Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d #v6.0.0
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 #v5.0.0
+        with:
+          path: site
+
+      - name: Deploy to Pages
+        id: deploy
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 #v5.0.0
