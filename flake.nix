@@ -18,7 +18,21 @@
 
       perSystem =
         { pkgs, ... }:
+        let
+          version = (builtins.fromJSON (builtins.readFile ./manifest.json)).version;
+        in
         {
+          # `nix build` -> result/account-stripe-<version>.xpi
+          # An .xpi is just a zip with manifest.json at the root.
+          packages.default = pkgs.runCommand "account-stripe-${version}.xpi" {
+            nativeBuildInputs = [ pkgs.zip ];
+          } ''
+            mkdir -p $out
+            cd ${./.}
+            zip -r -X "$out/account-stripe-${version}.xpi" \
+              manifest.json background.js api
+          '';
+
           devShells.default = pkgs.mkShell {
             # biome: formats + lints the JS/JSON.
             # prek: runs the biome check as a git hook (see prek.toml).
