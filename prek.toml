@@ -1,0 +1,10 @@
+#:schema https://www.schemastore.org/prek.json
+
+[[repos]]
+repo = "local"
+hooks = [
+  { id = "biome-check", name = "biome check", language = "system", entry = "biome check", types_or = [
+    "javascript",
+    "json",
+  ] },
+]
