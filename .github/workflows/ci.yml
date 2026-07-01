@@ -8,16 +8,17 @@ jobs:
   check:
     name: Flake checks
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write # FlakeHub Cache auth (OIDC)
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 #v4.3.1
 
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@92148bb48b9a0c5458c53dd0b368fbfbfbaa3210 #main
 
-      - name: Setup FlakeHub Cache
-        uses: DeterminateSystems/flakehub-cache-action@9926dde74484ccb2224835b80531de64ed4336ef #main
+      - name: Cache Nix store
+        uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 #v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.lock', '**/*.nix') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
 
       - name: Run flake checks
         run: nix flake check -L
@@ -28,7 +29,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      id-token: write # FlakeHub Cache auth (OIDC)
     env:
       # Monotonic add-on version (must climb for auto-update to fire). The commit
       # short hash goes in the release notes for traceability, not the version.
@@ -39,8 +39,11 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@92148bb48b9a0c5458c53dd0b368fbfbfbaa3210 #main
 
-      - name: Setup FlakeHub Cache
-        uses: DeterminateSystems/flakehub-cache-action@9926dde74484ccb2224835b80531de64ed4336ef #main
+      - name: Cache Nix store
+        uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 #v7
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.lock', '**/*.nix') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
 
       - name: Inject version into manifest
         run: |
